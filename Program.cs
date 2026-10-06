@@ -2,6 +2,7 @@
 using UAVFLSecureSim.Drones;
 using UAVFLSecureSim.World;
 using UAVFLSecureSim.Federation;
+using UAVFLSecureSim.Evaluation;
 
 
 namespace UAVFLSecureSim
@@ -86,7 +87,50 @@ namespace UAVFLSecureSim
                     $"Round {coordinator.CurrentRound,2}: " +
                     $"{coordinator.GlobalModel}");
             }
-        }
+
+            IReadOnlyList<ValidationSample> validationSamples =
+                ValidationData.Create();
+
+            ModelEvaluationResult evaluation =
+                ModelEvaluator.Evaluate(
+                    coordinator.GlobalModel,
+                    validationSamples);
+
+            Console.WriteLine();
+            Console.WriteLine("Global Model Evaluation");
+            Console.WriteLine("-----------------------");
+
+            Console.WriteLine(
+                $"True Positives:  {evaluation.TruePositives}");
+
+            Console.WriteLine(
+                $"True Negatives:  {evaluation.TrueNegatives}");
+
+            Console.WriteLine(
+                $"False Positives: {evaluation.FalsePositives}");
+
+            Console.WriteLine(
+                $"False Negatives: {evaluation.FalseNegatives}");
+
+            Console.WriteLine();
+
+            Console.WriteLine(
+                $"Accuracy:  {evaluation.Accuracy:P1}");
+
+            Console.WriteLine(
+                $"Precision: {evaluation.Precision:P1}");
+
+            Console.WriteLine(
+                $"Recall:    {evaluation.Recall:P1}");
+
+            Console.WriteLine(
+                $"F1 Score:  {evaluation.F1Score:P1}");
+            Console.WriteLine(
+                $"Log Loss:  {evaluation.LogLoss:F4}");
+
+        }// end of Main method
+
+
 
         private static int ReadNumberOfCompromisedDrones(int maximum)
         {
