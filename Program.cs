@@ -19,6 +19,12 @@ namespace UAVFLSecureSim
             int numberOfDrones = ReadNumberOfDrones(map.Width);
 
             DroneSwarm swarm = new DroneSwarm(numberOfDrones, map);
+
+            int numberOfCompromisedDrones =
+                ReadNumberOfCompromisedDrones(numberOfDrones);
+
+            swarm.CompromiseDrones(numberOfCompromisedDrones);
+
             swarm.Survey(map);
 
             MapRenderer.Render(map);
@@ -37,7 +43,21 @@ namespace UAVFLSecureSim
                     $"Max: {drone.MaximumTemperature,5:F1} C");
             }
 
-            //test
+            Console.WriteLine();
+            Console.WriteLine("Simulation Security Ground Truth");
+            Console.WriteLine("--------------------------------");
+
+            foreach (Drone drone in swarm.Drones)
+            {
+                string status =
+                    drone.IsCompromised
+                        ? "COMPROMISED"
+                        : "HONEST";
+
+                Console.WriteLine(
+                    $"{drone.Name}: {status}");
+            }
+
             Console.WriteLine();
             Console.WriteLine("Federated Learning");
             Console.WriteLine("------------------");
@@ -45,29 +65,51 @@ namespace UAVFLSecureSim
             FederatedCoordinator coordinator =
                 new FederatedCoordinator();
 
-            Console.WriteLine(
-                $"Round {coordinator.CurrentRound,2}: " +
-                $"{coordinator.GlobalModel}");
-
             const int totalRounds = 10;
             const int localEpochs = 100;
             const double learningRate = 0.1;
+            const double attackStrength = 2.0;
+
+            Console.WriteLine(
+                $"Round {coordinator.CurrentRound,2}: " +
+                $"{coordinator.GlobalModel}");
 
             for (int round = 0; round < totalRounds; round++)
             {
                 coordinator.RunRound(
                     swarm,
                     localEpochs,
-                    learningRate);
+                    learningRate,
+                    attackStrength);
 
                 Console.WriteLine(
                     $"Round {coordinator.CurrentRound,2}: " +
                     $"{coordinator.GlobalModel}");
             }
+        }
 
+        private static int ReadNumberOfCompromisedDrones(int maximum)
+        {
+            while (true)
+            {
+                Console.Write(
+                    $"Number of compromised UAVs (0-{maximum}): ");
 
+                string? input = Console.ReadLine();
 
-        }// end of main
+                if (int.TryParse(input, out int number) &&
+                    number >= 0 &&
+                    number <= maximum)
+                {
+                    return number;
+                }
+
+                Console.WriteLine(
+                    $"Please enter a whole number between 0 and {maximum}.");
+
+                Console.WriteLine();
+            }
+        }
 
 
 
@@ -93,5 +135,7 @@ namespace UAVFLSecureSim
                 Console.WriteLine();
             }
         }
-    }
-}
+
+
+    }// end of class
+}// end of namespace

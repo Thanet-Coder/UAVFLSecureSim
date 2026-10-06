@@ -16,9 +16,10 @@ namespace UAVFLSecureSim.Federation
         }
 
         public void RunRound(
-            DroneSwarm swarm,
-            int localEpochs,
-            double learningRate)
+    DroneSwarm swarm,
+    int localEpochs,
+    double learningRate,
+    double attackStrength)
         {
             List<ModelUpdate> updates = new();
 
@@ -28,7 +29,8 @@ namespace UAVFLSecureSim.Federation
                     drone.CreateModelUpdate(
                         GlobalModel,
                         localEpochs,
-                        learningRate);
+                        learningRate,
+                        attackStrength);
 
                 updates.Add(update);
             }

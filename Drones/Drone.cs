@@ -1,5 +1,6 @@
 ﻿using UAVFLSecureSim.World;
 using UAVFLSecureSim.Learning;
+using UAVFLSecureSim.Security;
 
 namespace UAVFLSecureSim.Drones
 {
@@ -7,6 +8,8 @@ namespace UAVFLSecureSim.Drones
     {
         private readonly List<DroneObservation> observations = new();
 
+
+        public bool IsCompromised { get; private set; }
         public int Id { get; }
         public string Name => $"UAV-{Id:00}";
 
@@ -15,7 +18,7 @@ namespace UAVFLSecureSim.Drones
 
         public int ObservationCount => observations.Count;
         public double AverageTemperature =>
-    observations.Count == 0
+                observations.Count == 0
         ? 0.0
         : observations.Average(o => o.Temperature);
 
@@ -28,6 +31,11 @@ namespace UAVFLSecureSim.Drones
             observations.Count == 0
                 ? 0.0
                 : observations.Max(o => o.Temperature);
+
+        public void Compromise()
+        {
+            IsCompromised = true;
+        }
 
         public Drone(int id)
         {
@@ -91,7 +99,8 @@ namespace UAVFLSecureSim.Drones
         public ModelUpdate CreateModelUpdate(
             LogisticModel globalModel,
             int epochs,
-            double learningRate)
+            double learningRate,
+            double attackStrength)
         {
             LogisticModel localModel =
                 TrainLocalModel(
@@ -99,11 +108,22 @@ namespace UAVFLSecureSim.Drones
                     epochs,
                     learningRate);
 
-            return new ModelUpdate(
-                Id,
-                localModel.Weight,
-                localModel.Bias,
-                ObservationCount);
+            ModelUpdate honestUpdate =
+                new ModelUpdate(
+                    Id,
+                    localModel.Weight,
+                    localModel.Bias,
+                    ObservationCount);
+
+            if (!IsCompromised)
+            {
+                return honestUpdate;
+            }
+
+            return ModelPoisoningAttack.Poison(
+                honestUpdate,
+                globalModel,
+                attackStrength);
         }
 
 

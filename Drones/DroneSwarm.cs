@@ -32,6 +32,22 @@ namespace UAVFLSecureSim.Drones
             AssignSurveyRegions(map);
         }
 
+        public void CompromiseDrones(int numberOfCompromisedDrones)
+        {
+            if (numberOfCompromisedDrones < 0 ||
+                numberOfCompromisedDrones > drones.Count)
+            {
+                throw new ArgumentException(
+                    "The number of compromised UAVs must be between 0 " +
+                    "and the total number of UAVs.");
+            }
+
+            for (int i = 0; i < numberOfCompromisedDrones; i++)
+            {
+                drones[i].Compromise();
+            }
+        }
+
         private void CreateDrones(int numberOfDrones)
         {
             for (int i = 1; i <= numberOfDrones; i++)
