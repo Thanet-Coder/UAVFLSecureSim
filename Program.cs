@@ -3,6 +3,7 @@ using UAVFLSecureSim.Drones;
 using UAVFLSecureSim.World;
 using UAVFLSecureSim.Federation;
 using UAVFLSecureSim.Evaluation;
+using UAVFLSecureSim.Trust;
 
 
 namespace UAVFLSecureSim
@@ -17,14 +18,17 @@ namespace UAVFLSecureSim
             Console.WriteLine("================");
             Console.WriteLine();
 
-            int numberOfDrones = ReadNumberOfDrones(map.Width);
+            int numberOfDrones =
+                ReadNumberOfDrones(map.Width);
 
-            DroneSwarm swarm = new DroneSwarm(numberOfDrones, map);
+            DroneSwarm swarm =
+                new DroneSwarm(numberOfDrones, map);
 
             int numberOfCompromisedDrones =
                 ReadNumberOfCompromisedDrones(numberOfDrones);
 
-            swarm.CompromiseDrones(numberOfCompromisedDrones);
+            swarm.CompromiseDrones(
+                numberOfCompromisedDrones);
 
             swarm.Survey(map);
 
@@ -45,8 +49,10 @@ namespace UAVFLSecureSim
             }
 
             Console.WriteLine();
-            Console.WriteLine("Simulation Security Ground Truth");
-            Console.WriteLine("--------------------------------");
+            Console.WriteLine(
+                "Simulation Security Ground Truth");
+            Console.WriteLine(
+                "--------------------------------");
 
             foreach (Drone drone in swarm.Drones)
             {
@@ -72,10 +78,17 @@ namespace UAVFLSecureSim
             const double attackStrength = 2.0;
 
             Console.WriteLine(
+                $"Attack strength: {attackStrength:F1}");
+
+            Console.WriteLine();
+
+            Console.WriteLine(
                 $"Round {coordinator.CurrentRound,2}: " +
                 $"{coordinator.GlobalModel}");
 
-            for (int round = 0; round < totalRounds; round++)
+            for (int round = 0;
+                 round < totalRounds;
+                 round++)
             {
                 coordinator.RunRound(
                     swarm,
@@ -88,8 +101,51 @@ namespace UAVFLSecureSim
                     $"{coordinator.GlobalModel}");
             }
 
-            IReadOnlyList<ValidationSample> validationSamples =
-                ValidationData.Create();
+            // -------------------------------------------------
+            // Update Behaviour Evidence
+            // -------------------------------------------------
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "Update Behaviour Evidence");
+            Console.WriteLine(
+                "-------------------------");
+
+            foreach (UpdateBehaviourResult result
+                in coordinator.LastBehaviourResults)
+            {
+                Console.WriteLine(
+                    $"UAV-{result.DroneId:00} | " +
+                    $"Distance: {result.Distance:F4} | " +
+                    $"Behaviour Trust: {result.TrustScore:F3}");
+            }
+
+            // -------------------------------------------------
+            // Validation Impact Evidence
+            // -------------------------------------------------
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "Validation Impact Evidence");
+            Console.WriteLine(
+                "--------------------------");
+
+            foreach (ValidationImpactResult result
+                in coordinator.LastValidationResults)
+            {
+                Console.WriteLine(
+                    $"UAV-{result.DroneId:00} | " +
+                    $"Log Loss: {result.LogLoss:F4} | " +
+                    $"Validation Trust: {result.TrustScore:F3}");
+            }
+
+            // -------------------------------------------------
+            // Global Model Evaluation
+            // -------------------------------------------------
+
+            IReadOnlyList<ValidationSample>
+                validationSamples =
+                    ValidationData.Create();
 
             ModelEvaluationResult evaluation =
                 ModelEvaluator.Evaluate(
@@ -97,20 +153,26 @@ namespace UAVFLSecureSim
                     validationSamples);
 
             Console.WriteLine();
-            Console.WriteLine("Global Model Evaluation");
-            Console.WriteLine("-----------------------");
+            Console.WriteLine(
+                "Global Model Evaluation");
+            Console.WriteLine(
+                "-----------------------");
 
             Console.WriteLine(
-                $"True Positives:  {evaluation.TruePositives}");
+                $"True Positives:  " +
+                $"{evaluation.TruePositives}");
 
             Console.WriteLine(
-                $"True Negatives:  {evaluation.TrueNegatives}");
+                $"True Negatives:  " +
+                $"{evaluation.TrueNegatives}");
 
             Console.WriteLine(
-                $"False Positives: {evaluation.FalsePositives}");
+                $"False Positives: " +
+                $"{evaluation.FalsePositives}");
 
             Console.WriteLine(
-                $"False Negatives: {evaluation.FalseNegatives}");
+                $"False Negatives: " +
+                $"{evaluation.FalseNegatives}");
 
             Console.WriteLine();
 
@@ -125,10 +187,11 @@ namespace UAVFLSecureSim
 
             Console.WriteLine(
                 $"F1 Score:  {evaluation.F1Score:P1}");
+
             Console.WriteLine(
                 $"Log Loss:  {evaluation.LogLoss:F4}");
 
-        }// end of Main method
+        } // end of Main method
 
 
 
