@@ -1,6 +1,8 @@
 ﻿using UAVFLSecureSim.Display;
 using UAVFLSecureSim.Drones;
 using UAVFLSecureSim.World;
+using UAVFLSecureSim.Federation;
+
 
 namespace UAVFLSecureSim
 {
@@ -34,7 +36,42 @@ namespace UAVFLSecureSim
                     $"Min: {drone.MinimumTemperature,5:F1} C | " +
                     $"Max: {drone.MaximumTemperature,5:F1} C");
             }
-        }
+
+            //test
+            Console.WriteLine();
+            Console.WriteLine("Federated Learning");
+            Console.WriteLine("------------------");
+
+            FederatedCoordinator coordinator =
+                new FederatedCoordinator();
+
+            Console.WriteLine(
+                $"Round {coordinator.CurrentRound,2}: " +
+                $"{coordinator.GlobalModel}");
+
+            const int totalRounds = 10;
+            const int localEpochs = 100;
+            const double learningRate = 0.1;
+
+            for (int round = 0; round < totalRounds; round++)
+            {
+                coordinator.RunRound(
+                    swarm,
+                    localEpochs,
+                    learningRate);
+
+                Console.WriteLine(
+                    $"Round {coordinator.CurrentRound,2}: " +
+                    $"{coordinator.GlobalModel}");
+            }
+
+
+
+        }// end of main
+
+
+
+
 
         private static int ReadNumberOfDrones(int maximum)
         {

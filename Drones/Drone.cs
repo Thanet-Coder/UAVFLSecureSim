@@ -1,4 +1,5 @@
 ﻿using UAVFLSecureSim.World;
+using UAVFLSecureSim.Learning;
 
 namespace UAVFLSecureSim.Drones
 {
@@ -59,5 +60,52 @@ namespace UAVFLSecureSim.Drones
         {
             return $"{Name}: columns {StartX}-{EndX}";
         }
-    }
-}
+
+        public LogisticModel TrainLocalModel(
+            LogisticModel globalModel,
+            int epochs,
+            double learningRate)
+        {
+            LogisticModel localModel = globalModel.Copy();
+
+            List<(double Temperature, int Label)> trainingData = new();
+
+            foreach (DroneObservation observation in observations)
+            {
+                int label = observation.Temperature >= 60.0 ? 1 : 0;
+
+                trainingData.Add(
+                    (observation.Temperature, label));
+            }
+
+            ModelTrainer.Train(
+                localModel,
+                trainingData,
+                epochs,
+                learningRate);
+
+            return localModel;
+        }
+
+
+        public ModelUpdate CreateModelUpdate(
+            LogisticModel globalModel,
+            int epochs,
+            double learningRate)
+        {
+            LogisticModel localModel =
+                TrainLocalModel(
+                    globalModel,
+                    epochs,
+                    learningRate);
+
+            return new ModelUpdate(
+                Id,
+                localModel.Weight,
+                localModel.Bias,
+                ObservationCount);
+        }
+
+
+    }// end of class
+}// end of namespace
