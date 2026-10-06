@@ -1,10 +1,15 @@
-﻿namespace UAVFLSecureSim
+﻿using UAVFLSecureSim.Display;
+using UAVFLSecureSim.World;
+
+namespace UAVFLSecureSim
 {
     internal class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
+            FireMap map = FixedFireMapGenerator.Create();
+
+            MapRenderer.Render(map);
         }
     }
 }
