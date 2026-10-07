@@ -5,6 +5,7 @@ using UAVFLSecureSim.Federation;
 using UAVFLSecureSim.Evaluation;
 using UAVFLSecureSim.Trust;
 using UAVFLSecureSim.Configuration;
+using UAVFLSecureSim.Benchmark;
 
 namespace UAVFLSecureSim
 {
@@ -13,6 +14,24 @@ namespace UAVFLSecureSim
 
         static void Main(string[] args)
         {
+            Console.WriteLine("UAV-FL SecureSim");
+            Console.WriteLine("================");
+            Console.WriteLine();
+            Console.WriteLine("1. Interactive Simulation");
+            Console.WriteLine("2. Benchmark Suite");
+            Console.WriteLine();
+
+            int mode =
+                ReadApplicationMode();
+
+            Console.WriteLine();
+
+            if (mode == 2)
+            {
+                RunBenchmarkSuite();
+                return;
+            }
+
             // -------------------------------------------------
             // Experiment Configuration
             // -------------------------------------------------
@@ -21,10 +40,6 @@ namespace UAVFLSecureSim
                 new ExperimentConfiguration();
 
             FireMap map = FixedFireMapGenerator.Create();
-
-            Console.WriteLine("UAV-FL SecureSim");
-            Console.WriteLine("================");
-            Console.WriteLine();
 
             configuration.NumberOfDrones =
                 ReadNumberOfDrones(map.Width);
@@ -341,6 +356,82 @@ namespace UAVFLSecureSim
                 $"Log Loss:  {evaluation.LogLoss:F4}");
 
         } // end of Main method
+
+        private static int ReadApplicationMode()
+{
+    while (true)
+    {
+        Console.Write(
+            "Select mode [default 1]: ");
+
+        string? input = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(input) ||
+            input == "1")
+        {
+            return 1;
+        }
+
+        if (input == "2")
+        {
+            return 2;
+        }
+
+        Console.WriteLine();
+        Console.WriteLine(
+            "Please enter 1 or 2.");
+        Console.WriteLine();
+    }
+}
+
+
+
+        private static void RunBenchmarkSuite()
+        {
+            List<BenchmarkScenario> benchmarkScenarios =
+                BenchmarkScenarioFactory.Create();
+
+            Console.WriteLine(
+                "UAV-FL SecureSim Benchmark Suite");
+            Console.WriteLine(
+                "================================");
+            Console.WriteLine();
+
+            Console.WriteLine(
+                $"{"Scenario",-55} " +
+                $"{"Acc",7} " +
+                $"{"Prec",7} " +
+                $"{"Recall",7} " +
+                $"{"F1",7} " +
+                $"{"Loss",8} " +
+                $"{"Comms",9} " +
+                $"{"Time ms",10}");
+
+            Console.WriteLine(
+                new string('-', 118));
+
+            foreach (BenchmarkScenario scenario
+                in benchmarkScenarios)
+            {
+                BenchmarkResult result =
+                    BenchmarkRunner.Run(scenario);
+
+                Console.WriteLine(
+                    $"{result.ScenarioName,-55} " +
+                    $"{result.Accuracy,7:P1} " +
+                    $"{result.Precision,7:P1} " +
+                    $"{result.Recall,7:P1} " +
+                    $"{result.F1Score,7:P1} " +
+                    $"{result.LogLoss,8:F4} " +
+                    $"{result.SuccessfulCommunications + "/" +
+                       result.ExpectedCommunications,9} " +
+                    $"{result.ExecutionTimeMilliseconds,10:F2}");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "Benchmark suite complete.");
+        }
 
 
         private static double ReadCommunicationReliability()
