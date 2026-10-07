@@ -139,6 +139,67 @@ namespace UAVFLSecureSim
                     $"Validation Trust: {result.TrustScore:F3}");
             }
 
+            //__________________________________________________
+            // Temporal Consistency Evidence
+            //__________________________________________________
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "Temporal Consistency Evidence");
+            Console.WriteLine(
+                "-----------------------------");
+
+            foreach (TemporalConsistencyResult result
+                in coordinator.LastTemporalResults)
+            {
+                Console.WriteLine(
+                    $"UAV-{result.DroneId:00} | " +
+                    $"Similarity: {result.Similarity:F4} | " +
+                    $"Temporal Trust: {result.TrustScore:F3}");
+            }
+
+            // -------------------------------------------------
+            // Communication Reliability Evidence
+            // -------------------------------------------------
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "Communication Reliability Evidence");
+            Console.WriteLine(
+                "----------------------------------");
+
+            foreach (CommunicationReliabilityResult result
+                in coordinator.LastCommunicationResults)
+            {
+                Console.WriteLine(
+                    $"UAV-{result.DroneId:00} | " +
+                    $"Successful: {result.SuccessfulRounds}/" +
+                    $"{result.ExpectedRounds} | " +
+                    $"Reliability Trust: {result.TrustScore:F3}");
+            }
+
+            // __________________________________________________
+            // Combined Multi-Evidence Trust Scores
+            // __________________________________________________
+
+            Console.WriteLine();
+            Console.WriteLine(
+                "Combined Multi-Evidence Trust");
+            Console.WriteLine(
+                "-----------------------------");
+
+            foreach (CombinedTrustResult result
+                in coordinator.LastCombinedTrustResults)
+            {
+                Console.WriteLine(
+                    $"UAV-{result.DroneId:00} | " +
+                    $"B: {result.BehaviourTrust:F3} | " +
+                    $"V: {result.ValidationTrust:F3} | " +
+                    $"T: {result.TemporalTrust:F3} | " +
+                    $"C: {result.CommunicationTrust:F3} | " +
+                    $"Overall: {result.OverallTrust:F3}");
+            }
+
             // -------------------------------------------------
             // Global Model Evaluation
             // -------------------------------------------------
