@@ -123,9 +123,12 @@ namespace UAVFLSecureSim.Federation
             // The combined trust scores are calculated
             // but do NOT yet influence aggregation.
             GlobalModel =
-                FedAvgAggregator.Aggregate(updates);
+                TrustAwareAggregator.Aggregate(
+                updates,
+                LastCombinedTrustResults);
 
             CurrentRound++;
+
         }// end RunRound
 
     }// end class
