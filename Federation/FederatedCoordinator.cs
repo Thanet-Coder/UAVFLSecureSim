@@ -13,6 +13,8 @@ namespace UAVFLSecureSim.Federation
         private readonly CommunicationReliabilityEvaluator
             communicationReliabilityEvaluator = new();
 
+        private readonly Random random;
+
         public LogisticModel GlobalModel { get; private set; }
 
         public int CurrentRound { get; private set; }
@@ -42,10 +44,13 @@ namespace UAVFLSecureSim.Federation
         { get; private set; }
                 = Array.Empty<CombinedTrustResult>();
 
-        public FederatedCoordinator()
+        public FederatedCoordinator(
+            int randomSeed = 42)
         {
             GlobalModel = new LogisticModel();
             CurrentRound = 0;
+
+            random = new Random(randomSeed);
         }
 
         public void RunRound(
@@ -67,7 +72,14 @@ namespace UAVFLSecureSim.Federation
                         learningRate,
                         attackStrength);
 
-                updates.Add(update);
+                bool communicationSucceeded =
+                    random.NextDouble() <
+                    drone.CommunicationReliability;
+
+                if (communicationSucceeded)
+                {
+                    updates.Add(update);
+                }
             }
 
             // Evidence 1:

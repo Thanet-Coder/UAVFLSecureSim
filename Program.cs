@@ -5,7 +5,6 @@ using UAVFLSecureSim.Federation;
 using UAVFLSecureSim.Evaluation;
 using UAVFLSecureSim.Trust;
 
-
 namespace UAVFLSecureSim
 {
     internal class Program
@@ -75,7 +74,7 @@ namespace UAVFLSecureSim
             const int totalRounds = 10;
             const int localEpochs = 100;
             const double learningRate = 0.1;
-            const double attackStrength = 5.0;
+            const double attackStrength = 2.0;
 
             Console.WriteLine(
                 $"Attack strength: {attackStrength:F1}");
@@ -90,11 +89,44 @@ namespace UAVFLSecureSim
                  round < totalRounds;
                  round++)
             {
+                // Delayed compromise experiment:
+                // UAV-01 behaves honestly during rounds 1-5
+                // and becomes compromised before round 6.
+                if (round == 5)
+                {
+                    swarm.Drones[0].Compromise();
+
+                    Console.WriteLine();
+                    Console.WriteLine(
+                        "*** UAV-01 COMPROMISED BEFORE ROUND 6 ***");
+                    Console.WriteLine();
+                }
+
                 coordinator.RunRound(
                     swarm,
                     localEpochs,
                     learningRate,
                     attackStrength);
+
+                if (coordinator.CurrentRound == 6)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine(
+                        "Temporal Evidence at Compromise Transition");
+                    Console.WriteLine(
+                        "------------------------------------------");
+
+                    foreach (TemporalConsistencyResult result
+                        in coordinator.LastTemporalResults)
+                    {
+                        Console.WriteLine(
+                            $"UAV-{result.DroneId:00} | " +
+                            $"Similarity: {result.Similarity:F4} | " +
+                            $"Temporal Trust: {result.TrustScore:F3}");
+                    }
+
+                    Console.WriteLine();
+                }
 
                 Console.WriteLine(
                     $"Round {coordinator.CurrentRound,2}: " +
@@ -139,9 +171,9 @@ namespace UAVFLSecureSim
                     $"Validation Trust: {result.TrustScore:F3}");
             }
 
-            //__________________________________________________
+            // -------------------------------------------------
             // Temporal Consistency Evidence
-            //__________________________________________________
+            // -------------------------------------------------
 
             Console.WriteLine();
             Console.WriteLine(
@@ -178,9 +210,9 @@ namespace UAVFLSecureSim
                     $"Reliability Trust: {result.TrustScore:F3}");
             }
 
-            // __________________________________________________
+            // -------------------------------------------------
             // Combined Multi-Evidence Trust Scores
-            // __________________________________________________
+            // -------------------------------------------------
 
             Console.WriteLine();
             Console.WriteLine(
@@ -255,8 +287,8 @@ namespace UAVFLSecureSim
         } // end of Main method
 
 
-
-        private static int ReadNumberOfCompromisedDrones(int maximum)
+        private static int ReadNumberOfCompromisedDrones(
+            int maximum)
         {
             while (true)
             {
@@ -280,14 +312,12 @@ namespace UAVFLSecureSim
         }
 
 
-
-
-
         private static int ReadNumberOfDrones(int maximum)
         {
             while (true)
             {
-                Console.Write($"Number of UAVs (1-{maximum}): ");
+                Console.Write(
+                    $"Number of UAVs (1-{maximum}): ");
 
                 string? input = Console.ReadLine();
 
@@ -300,10 +330,10 @@ namespace UAVFLSecureSim
 
                 Console.WriteLine(
                     $"Please enter a whole number between 1 and {maximum}.");
+
                 Console.WriteLine();
             }
         }
 
-
-    }// end of class
-}// end of namespace
+    } // end of class
+} // end of namespace

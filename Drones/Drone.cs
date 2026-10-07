@@ -10,6 +10,7 @@ namespace UAVFLSecureSim.Drones
 
 
         public bool IsCompromised { get; private set; }
+        public double CommunicationReliability { get; private set; }
         public int Id { get; }
         public string Name => $"UAV-{Id:00}";
 
@@ -40,6 +41,7 @@ namespace UAVFLSecureSim.Drones
         public Drone(int id)
         {
             Id = id;
+            CommunicationReliability = 1.0;
         }
 
         public void AssignSurveyRegion(int startX, int endX)
@@ -124,6 +126,21 @@ namespace UAVFLSecureSim.Drones
                 honestUpdate,
                 globalModel,
                 attackStrength);
+        }
+
+        public void SetCommunicationReliability(
+            double reliability)
+        {
+            if (reliability < 0.0 ||
+                reliability > 1.0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(reliability),
+                    "Communication reliability must be " +
+                    "between 0.0 and 1.0.");
+            }
+
+            CommunicationReliability = reliability;
         }
 
 
