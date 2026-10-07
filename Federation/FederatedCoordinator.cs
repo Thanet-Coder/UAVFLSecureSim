@@ -19,6 +19,9 @@ namespace UAVFLSecureSim.Federation
 
         public int CurrentRound { get; private set; }
 
+        public AggregationMethod AggregationMethod
+        { get; private set; }
+
         public IReadOnlyList<UpdateBehaviourResult>
             LastBehaviourResults
         { get; private set; }
@@ -45,10 +48,14 @@ namespace UAVFLSecureSim.Federation
                 = Array.Empty<CombinedTrustResult>();
 
         public FederatedCoordinator(
+            AggregationMethod aggregationMethod =
+                AggregationMethod.TrustAware,
             int randomSeed = 42)
         {
             GlobalModel = new LogisticModel();
             CurrentRound = 0;
+
+            AggregationMethod = aggregationMethod;
 
             random = new Random(randomSeed);
         }
@@ -129,19 +136,26 @@ namespace UAVFLSecureSim.Federation
                     LastTemporalResults,
                     LastCommunicationResults);
 
-            // For now, continue using ordinary
-            // FedAvg aggregation.
-            //
-            // The combined trust scores are calculated
-            // but do NOT yet influence aggregation.
-            GlobalModel =
-                TrustAwareAggregator.Aggregate(
-                updates,
-                LastCombinedTrustResults);
+            // Select the aggregation strategy for
+            // this federated-learning experiment.
+            if (AggregationMethod ==
+                AggregationMethod.FedAvg)
+            {
+                GlobalModel =
+                    FedAvgAggregator.Aggregate(
+                        updates);
+            }
+            else
+            {
+                GlobalModel =
+                    TrustAwareAggregator.Aggregate(
+                        updates,
+                        LastCombinedTrustResults);
+            }
 
             CurrentRound++;
 
-        }// end RunRound
+        } // end RunRound
 
-    }// end class
-}// end namespace
+    } // end class
+} // end namespace

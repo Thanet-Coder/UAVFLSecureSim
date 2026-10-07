@@ -4,30 +4,107 @@ using UAVFLSecureSim.World;
 using UAVFLSecureSim.Federation;
 using UAVFLSecureSim.Evaluation;
 using UAVFLSecureSim.Trust;
+using UAVFLSecureSim.Configuration;
 
 namespace UAVFLSecureSim
 {
     internal class Program
     {
+
         static void Main(string[] args)
         {
+            // -------------------------------------------------
+            // Experiment Configuration
+            // -------------------------------------------------
+
+            ExperimentConfiguration configuration =
+                new ExperimentConfiguration();
+
             FireMap map = FixedFireMapGenerator.Create();
 
             Console.WriteLine("UAV-FL SecureSim");
             Console.WriteLine("================");
             Console.WriteLine();
 
-            int numberOfDrones =
+            configuration.NumberOfDrones =
                 ReadNumberOfDrones(map.Width);
 
             DroneSwarm swarm =
-                new DroneSwarm(numberOfDrones, map);
+                new DroneSwarm(
+                    configuration.NumberOfDrones,
+                    map);
 
-            int numberOfCompromisedDrones =
-                ReadNumberOfCompromisedDrones(numberOfDrones);
+            configuration.NumberOfCompromisedDrones =
+                ReadNumberOfCompromisedDrones(
+                    configuration.NumberOfDrones);
 
             swarm.CompromiseDrones(
-                numberOfCompromisedDrones);
+                configuration.NumberOfCompromisedDrones);
+
+            configuration.AggregationMethod =
+                ReadAggregationMethod();
+
+            configuration.AttackStrength =
+                ReadAttackStrength();
+
+            configuration.CommunicationReliability =
+                ReadCommunicationReliability();
+
+            foreach (Drone drone in swarm.Drones)
+            {
+                drone.SetCommunicationReliability(
+                    configuration.CommunicationReliability);
+            }
+
+            // -------------------------------------------------
+            // Display Experiment Configuration
+            // -------------------------------------------------
+
+            Console.WriteLine();
+            Console.WriteLine("Experiment Configuration");
+            Console.WriteLine("------------------------");
+
+            Console.WriteLine(
+                $"UAVs:              " +
+                $"{configuration.NumberOfDrones}");
+
+            Console.WriteLine(
+                $"Compromised UAVs:  " +
+                $"{configuration.NumberOfCompromisedDrones}");
+
+            Console.WriteLine(
+                $"Aggregation:       " +
+                $"{configuration.AggregationMethod}");
+
+            Console.WriteLine(
+                $"Attack strength:   " +
+                $"{configuration.AttackStrength:F1}");
+
+            Console.WriteLine(
+                $"Communication:     " +
+                $"{configuration.CommunicationReliability:P0}");
+
+            Console.WriteLine(
+                $"FL rounds:         " +
+                $"{configuration.TotalRounds}");
+
+            Console.WriteLine(
+                $"Local epochs:      " +
+                $"{configuration.LocalEpochs}");
+
+            Console.WriteLine(
+                $"Learning rate:     " +
+                $"{configuration.LearningRate:F1}");
+
+            Console.WriteLine(
+                $"Random seed:       " +
+                $"{configuration.RandomSeed}");
+
+            Console.WriteLine();
+
+            // -------------------------------------------------
+            // UAV Survey
+            // -------------------------------------------------
 
             swarm.Survey(map);
 
@@ -47,6 +124,10 @@ namespace UAVFLSecureSim
                     $"Max: {drone.MaximumTemperature,5:F1} C");
             }
 
+            // -------------------------------------------------
+            // Simulation Security Ground Truth
+            // -------------------------------------------------
+
             Console.WriteLine();
             Console.WriteLine(
                 "Simulation Security Ground Truth");
@@ -64,20 +145,26 @@ namespace UAVFLSecureSim
                     $"{drone.Name}: {status}");
             }
 
+            // -------------------------------------------------
+            // Federated Learning
+            // -------------------------------------------------
+
             Console.WriteLine();
             Console.WriteLine("Federated Learning");
             Console.WriteLine("------------------");
 
             FederatedCoordinator coordinator =
-                new FederatedCoordinator();
-
-            const int totalRounds = 10;
-            const int localEpochs = 100;
-            const double learningRate = 0.1;
-            const double attackStrength = 2.0;
+                new FederatedCoordinator(
+                    configuration.AggregationMethod,
+                    configuration.RandomSeed);
 
             Console.WriteLine(
-                $"Attack strength: {attackStrength:F1}");
+                $"Aggregation: " +
+                $"{coordinator.AggregationMethod}");
+
+            Console.WriteLine(
+                $"Attack strength: " +
+                $"{configuration.AttackStrength:F1}");
 
             Console.WriteLine();
 
@@ -86,47 +173,14 @@ namespace UAVFLSecureSim
                 $"{coordinator.GlobalModel}");
 
             for (int round = 0;
-                 round < totalRounds;
+                 round < configuration.TotalRounds;
                  round++)
             {
-                // Delayed compromise experiment:
-                // UAV-01 behaves honestly during rounds 1-5
-                // and becomes compromised before round 6.
-                if (round == 5)
-                {
-                    swarm.Drones[0].Compromise();
-
-                    Console.WriteLine();
-                    Console.WriteLine(
-                        "*** UAV-01 COMPROMISED BEFORE ROUND 6 ***");
-                    Console.WriteLine();
-                }
-
                 coordinator.RunRound(
                     swarm,
-                    localEpochs,
-                    learningRate,
-                    attackStrength);
-
-                if (coordinator.CurrentRound == 6)
-                {
-                    Console.WriteLine();
-                    Console.WriteLine(
-                        "Temporal Evidence at Compromise Transition");
-                    Console.WriteLine(
-                        "------------------------------------------");
-
-                    foreach (TemporalConsistencyResult result
-                        in coordinator.LastTemporalResults)
-                    {
-                        Console.WriteLine(
-                            $"UAV-{result.DroneId:00} | " +
-                            $"Similarity: {result.Similarity:F4} | " +
-                            $"Temporal Trust: {result.TrustScore:F3}");
-                    }
-
-                    Console.WriteLine();
-                }
+                    configuration.LocalEpochs,
+                    configuration.LearningRate,
+                    configuration.AttackStrength);
 
                 Console.WriteLine(
                     $"Round {coordinator.CurrentRound,2}: " +
@@ -205,9 +259,11 @@ namespace UAVFLSecureSim
             {
                 Console.WriteLine(
                     $"UAV-{result.DroneId:00} | " +
-                    $"Successful: {result.SuccessfulRounds}/" +
+                    $"Successful: " +
+                    $"{result.SuccessfulRounds}/" +
                     $"{result.ExpectedRounds} | " +
-                    $"Reliability Trust: {result.TrustScore:F3}");
+                    $"Reliability Trust: " +
+                    $"{result.TrustScore:F3}");
             }
 
             // -------------------------------------------------
@@ -287,13 +343,124 @@ namespace UAVFLSecureSim
         } // end of Main method
 
 
+        private static double ReadCommunicationReliability()
+        {
+            while (true)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Communication Conditions");
+                Console.WriteLine("------------------------");
+                Console.WriteLine("1. Reliable (100%)");
+                Console.WriteLine("2. Moderate  (80%)");
+                Console.WriteLine("3. Poor      (60%)");
+                Console.Write(
+                    "Select communication conditions [default 1]: ");
+
+                string? input = Console.ReadLine();
+
+                // Pressing Enter selects the research default.
+                if (string.IsNullOrWhiteSpace(input) ||
+                    input == "1")
+                {
+                    return 1.0;
+                }
+
+                if (input == "2")
+                {
+                    return 0.8;
+                }
+
+                if (input == "3")
+                {
+                    return 0.6;
+                }
+
+                Console.WriteLine();
+                Console.WriteLine(
+                    "Please enter 1, 2 or 3.");
+            }
+        }
+
+        private static double ReadAttackStrength()
+        {
+            while (true)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Model Poisoning Attack");
+                Console.WriteLine("----------------------");
+                Console.WriteLine("1. Low      (1.0)");
+                Console.WriteLine("2. Moderate (2.0)");
+                Console.WriteLine("3. High     (5.0)");
+                Console.Write(
+                    "Select attack strength [default 2]: ");
+
+                string? input = Console.ReadLine();
+
+                // Pressing Enter selects the research default.
+                if (string.IsNullOrWhiteSpace(input) ||
+                    input == "2")
+                {
+                    return 2.0;
+                }
+
+                if (input == "1")
+                {
+                    return 1.0;
+                }
+
+                if (input == "3")
+                {
+                    return 5.0;
+                }
+
+                Console.WriteLine();
+                Console.WriteLine(
+                    "Please enter 1, 2 or 3.");
+            }
+        }
+
+        private static AggregationMethod
+    ReadAggregationMethod()
+        {
+            while (true)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Aggregation Method");
+                Console.WriteLine("------------------");
+                Console.WriteLine("1. Standard FedAvg");
+                Console.WriteLine("2. Trust-Aware");
+                Console.Write(
+                    "Select aggregation method [default 2]: ");
+
+                string? input = Console.ReadLine();
+
+                // Pressing Enter selects the research default.
+                if (string.IsNullOrWhiteSpace(input) ||
+                    input == "2")
+                {
+                    return AggregationMethod.TrustAware;
+                }
+
+                if (input == "1")
+                {
+                    return AggregationMethod.FedAvg;
+                }
+
+                Console.WriteLine();
+                Console.WriteLine(
+                    "Please enter 1 or 2.");
+            }
+        }
+
+
         private static int ReadNumberOfCompromisedDrones(
             int maximum)
         {
             while (true)
             {
                 Console.Write(
-                    $"Number of compromised UAVs (0-{maximum}): ");
+                    $"Number of compromised UAVs " +
+                    $"(0-{maximum}): ");
 
                 string? input = Console.ReadLine();
 
@@ -305,19 +472,22 @@ namespace UAVFLSecureSim
                 }
 
                 Console.WriteLine(
-                    $"Please enter a whole number between 0 and {maximum}.");
+                    $"Please enter a whole number " +
+                    $"between 0 and {maximum}.");
 
                 Console.WriteLine();
             }
         }
 
 
-        private static int ReadNumberOfDrones(int maximum)
+        private static int ReadNumberOfDrones(
+            int maximum)
         {
             while (true)
             {
                 Console.Write(
-                    $"Number of UAVs (1-{maximum}): ");
+                    $"Number of UAVs " +
+                    $"(1-{maximum}): ");
 
                 string? input = Console.ReadLine();
 
@@ -329,7 +499,8 @@ namespace UAVFLSecureSim
                 }
 
                 Console.WriteLine(
-                    $"Please enter a whole number between 1 and {maximum}.");
+                    $"Please enter a whole number " +
+                    $"between 1 and {maximum}.");
 
                 Console.WriteLine();
             }
