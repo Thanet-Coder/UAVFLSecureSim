@@ -75,7 +75,7 @@ namespace UAVFLSecureSim
             const int totalRounds = 10;
             const int localEpochs = 100;
             const double learningRate = 0.1;
-            const double attackStrength = 2.0;
+            const double attackStrength = 5.0;
 
             Console.WriteLine(
                 $"Attack strength: {attackStrength:F1}");
