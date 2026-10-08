@@ -9,6 +9,7 @@
         public double Recall { get; }
         public double F1Score { get; }
         public double LogLoss { get; }
+        public int RandomSeed { get; }
 
         public int SuccessfulCommunications { get; }
         public int ExpectedCommunications { get; }
@@ -17,6 +18,7 @@
 
         public BenchmarkResult(
             string scenarioName,
+            int randomSeed,
             double accuracy,
             double precision,
             double recall,
@@ -27,6 +29,7 @@
             double executionTimeMilliseconds)
         {
             ScenarioName = scenarioName;
+            RandomSeed = randomSeed;
 
             Accuracy = accuracy;
             Precision = precision;
@@ -42,6 +45,6 @@
 
             ExecutionTimeMilliseconds =
                 executionTimeMilliseconds;
-        }
-    }
-}
+        }// end of constructor
+    }// end of class
+}// end of namespace

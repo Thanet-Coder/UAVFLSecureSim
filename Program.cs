@@ -386,19 +386,30 @@ namespace UAVFLSecureSim
 
 
 
+
+
+
         private static void RunBenchmarkSuite()
         {
             List<BenchmarkScenario> benchmarkScenarios =
                 BenchmarkScenarioFactory.Create();
 
-            Console.WriteLine(
-                "UAV-FL SecureSim Benchmark Suite");
-            Console.WriteLine(
-                "================================");
+            List<BenchmarkResult> benchmarkResults =
+                new List<BenchmarkResult>();
+
+            int[] randomSeeds = { 42, 101, 202, 303, 404 };
+
+            // -------------------------------------------------
+            // Model Quality Benchmarks
+            // -------------------------------------------------
+
+            Console.WriteLine("UAV-FL SecureSim Benchmark Suite");
+            Console.WriteLine("================================");
             Console.WriteLine();
 
             Console.WriteLine(
                 $"{"Scenario",-55} " +
+                $"{"Seed",5} " +
                 $"{"Acc",7} " +
                 $"{"Prec",7} " +
                 $"{"Recall",7} " +
@@ -407,31 +418,121 @@ namespace UAVFLSecureSim
                 $"{"Comms",9} " +
                 $"{"Time ms",10}");
 
-            Console.WriteLine(
-                new string('-', 118));
+            Console.WriteLine(new string('-', 124));
 
-            foreach (BenchmarkScenario scenario
-                in benchmarkScenarios)
+            foreach (BenchmarkScenario scenario in benchmarkScenarios)
             {
-                BenchmarkResult result =
-                    BenchmarkRunner.Run(scenario);
+                foreach (int randomSeed in randomSeeds)
+                {
+                    BenchmarkResult result =
+                        BenchmarkRunner.Run(
+                            scenario,
+                            randomSeed: randomSeed);
 
-                Console.WriteLine(
-                    $"{result.ScenarioName,-55} " +
-                    $"{result.Accuracy,7:P1} " +
-                    $"{result.Precision,7:P1} " +
-                    $"{result.Recall,7:P1} " +
-                    $"{result.F1Score,7:P1} " +
-                    $"{result.LogLoss,8:F4} " +
-                    $"{result.SuccessfulCommunications + "/" +
-                       result.ExpectedCommunications,9} " +
-                    $"{result.ExecutionTimeMilliseconds,10:F2}");
+                    benchmarkResults.Add(result);
+
+                    Console.WriteLine(
+                        $"{result.ScenarioName,-55} " +
+                        $"{result.RandomSeed,5} " +
+                        $"{result.Accuracy,7:P1} " +
+                        $"{result.Precision,7:P1} " +
+                        $"{result.Recall,7:P1} " +
+                        $"{result.F1Score,7:P1} " +
+                        $"{result.LogLoss,8:F4} " +
+                        $"{result.SuccessfulCommunications + "/" +
+                           result.ExpectedCommunications,9} " +
+                        $"{result.ExecutionTimeMilliseconds,10:F2}");
+                }
             }
 
             Console.WriteLine();
+
+            string resultsPath =
+                Path.Combine(
+                    "results",
+                    "benchmark_results.csv");
+
+            BenchmarkCsvExporter.Export(
+                benchmarkResults,
+                resultsPath);
+
             Console.WriteLine(
-                "Benchmark suite complete.");
-        }
+                $"Model results saved to: " +
+                $"{Path.GetFullPath(resultsPath)}");
+
+            // -------------------------------------------------
+            // Performance Timing Benchmarks
+            // -------------------------------------------------
+
+            const int warmupRuns = 3;
+            const int timedRepetitions = 10;
+            const int timingSeed = 42;
+
+            List<(
+                BenchmarkScenario Scenario,
+                BenchmarkTimingResult Timing)> timingResults =
+                    new List<(
+                        BenchmarkScenario Scenario,
+                        BenchmarkTimingResult Timing)>();
+
+            Console.WriteLine();
+            Console.WriteLine("Benchmark Timing Results");
+            Console.WriteLine("------------------------");
+
+            Console.WriteLine(
+                $"{"Scenario",-55} " +
+                $"{"Mean ms",10} " +
+                $"{"Std Dev",10} " +
+                $"{"Min ms",10} " +
+                $"{"Max ms",10}");
+
+            Console.WriteLine(new string('-', 101));
+
+            foreach (BenchmarkScenario scenario in benchmarkScenarios)
+            {
+                BenchmarkTimingResult timing =
+                    BenchmarkTimingRunner.Run(
+                        scenario,
+                        randomSeed: timingSeed,
+                        warmupRuns: warmupRuns,
+                        timedRepetitions: timedRepetitions);
+
+                timingResults.Add((scenario, timing));
+
+                Console.WriteLine(
+                    $"{scenario.Name,-55} " +
+                    $"{timing.MeanMilliseconds,10:F3} " +
+                    $"{timing.StandardDeviationMilliseconds,10:F3} " +
+                    $"{timing.MinimumMilliseconds,10:F3} " +
+                    $"{timing.MaximumMilliseconds,10:F3}");
+            }
+
+            Console.WriteLine();
+
+            string timingPath =
+                Path.Combine(
+                    "results",
+                    "benchmark_timing.csv");
+
+            BenchmarkTimingCsvExporter.Export(
+                timingResults,
+                timingPath,
+                warmupRuns);
+
+            Console.WriteLine(
+                $"Timing results saved to: " +
+                $"{Path.GetFullPath(timingPath)}");
+
+            Console.WriteLine();
+            Console.WriteLine(
+                $"Benchmark suite complete. " +
+                $"{benchmarkResults.Count} model-quality runs " +
+                $"and {timingResults.Count} timing scenarios.");
+        }// end of RunBenchmarkSuite method
+
+
+
+
 
 
         private static double ReadCommunicationReliability()
@@ -444,6 +545,7 @@ namespace UAVFLSecureSim
                 Console.WriteLine("1. Reliable (100%)");
                 Console.WriteLine("2. Moderate  (80%)");
                 Console.WriteLine("3. Poor      (60%)");
+                Console.WriteLine("4. No Communication (0%)");
                 Console.Write(
                     "Select communication conditions [default 1]: ");
 
@@ -466,11 +568,17 @@ namespace UAVFLSecureSim
                     return 0.6;
                 }
 
+                if (input == "4")
+                {
+                    return 0.0;
+                }
+
                 Console.WriteLine();
                 Console.WriteLine(
-                    "Please enter 1, 2 or 3.");
+                    "Please enter 1, 2, 3 or 4.");
             }
-        }
+        }// end of ReadCommunicationReliability method
+
 
         private static double ReadAttackStrength()
         {

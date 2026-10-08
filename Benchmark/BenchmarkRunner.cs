@@ -97,6 +97,7 @@ namespace UAVFLSecureSim.Benchmark
 
             return new BenchmarkResult(
                 scenario.Name,
+                randomSeed,
                 evaluation.Accuracy,
                 evaluation.Precision,
                 evaluation.Recall,

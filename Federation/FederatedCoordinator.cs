@@ -89,6 +89,43 @@ namespace UAVFLSecureSim.Federation
                 }
             }
 
+
+            // -------------------------------------------------
+            // Handle a round with no received model updates
+            // -------------------------------------------------
+
+            if (updates.Count == 0)
+            {
+                // Record the communication failures even
+                // though no model updates were received.
+                LastCommunicationResults =
+                    communicationReliabilityEvaluator.Evaluate(
+                        swarm.Drones,
+                        updates);
+
+                // No submitted updates means there is no
+                // new behaviour, validation or temporal
+                // evidence to evaluate.
+                LastBehaviourResults =
+                    Array.Empty<UpdateBehaviourResult>();
+
+                LastValidationResults =
+                    Array.Empty<ValidationImpactResult>();
+
+                LastTemporalResults =
+                    Array.Empty<TemporalConsistencyResult>();
+
+                LastCombinedTrustResults =
+                    Array.Empty<CombinedTrustResult>();
+
+                // Keep the existing global model unchanged.
+                // The unsuccessful round still counts.
+                CurrentRound++;
+
+                return;
+            }
+
+
             // Evidence 1:
             // Measure how unusual each update is
             // compared with the rest of the swarm.
