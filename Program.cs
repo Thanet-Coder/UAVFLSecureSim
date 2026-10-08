@@ -6,6 +6,7 @@ using UAVFLSecureSim.Evaluation;
 using UAVFLSecureSim.Trust;
 using UAVFLSecureSim.Configuration;
 using UAVFLSecureSim.Benchmark;
+using UAVFLSecureSim.Detection;
 
 namespace UAVFLSecureSim
 {
@@ -528,6 +529,219 @@ namespace UAVFLSecureSim
                 $"Benchmark suite complete. " +
                 $"{benchmarkResults.Count} model-quality runs " +
                 $"and {timingResults.Count} timing scenarios.");
+
+            // -------------------------------------------------
+            // temporary diagnostic section
+            // -------------------------------------------------
+
+            // -------------------------------------------------
+            // Temporary Detection Diagnostic Test
+            // -------------------------------------------------
+
+            BenchmarkScenario detectionScenario =
+                benchmarkScenarios[5];
+
+            const double detectionThreshold = 0.50;
+
+            IReadOnlyList<DroneDetectionResult> detectionResults =
+                DetectionBenchmarkRunner.Run(
+                    detectionScenario,
+                    detectionThreshold: detectionThreshold,
+                    randomSeed: 42,
+                    showTrustComponents: true);
+
+            Console.WriteLine();
+            Console.WriteLine("Detection Diagnostic Test");
+            Console.WriteLine("-------------------------");
+            Console.WriteLine(
+                $"Scenario: {detectionScenario.Name}");
+            Console.WriteLine(
+                $"Threshold: {detectionThreshold:F2}");
+            Console.WriteLine();
+
+            Console.WriteLine(
+                $"{"UAV",-8} " +
+                $"{"Trust",8} " +
+                $"{"Actual",-15} " +
+                $"{"Prediction",-15}");
+
+            Console.WriteLine(new string('-', 52));
+
+            foreach (DroneDetectionResult result in detectionResults)
+            {
+                string actual =
+                    result.IsActuallyCompromised
+                        ? "Compromised"
+                        : "Honest";
+
+                string prediction =
+                    result.IsPredictedSuspicious
+                        ? "Suspicious"
+                        : "Trusted";
+
+                Console.WriteLine(
+                    $"{"UAV-" + result.DroneId.ToString("00"),-8} " +
+                    $"{result.TrustScore,8:F4} " +
+                    $"{actual,-15} " +
+                    $"{prediction,-15}");
+            }
+
+            DetectionMetrics detectionMetrics =
+                DetectionMetricsCalculator.Calculate(
+                    detectionResults);
+
+            Console.WriteLine();
+            Console.WriteLine("Detection Summary");
+            Console.WriteLine("-----------------");
+            Console.WriteLine(
+                $"True Positives:  {detectionMetrics.TruePositives}");
+            Console.WriteLine(
+                $"False Positives: {detectionMetrics.FalsePositives}");
+            Console.WriteLine(
+                $"True Negatives:  {detectionMetrics.TrueNegatives}");
+            Console.WriteLine(
+                $"False Negatives: {detectionMetrics.FalseNegatives}");
+            Console.WriteLine(
+                $"Total Evaluated: {detectionMetrics.TotalEvaluated}");
+            Console.WriteLine(
+                $"Precision:       {detectionMetrics.Precision:P1}");
+            Console.WriteLine(
+                $"Recall:          {detectionMetrics.Recall:P1}");
+            Console.WriteLine(
+                $"F1 Score:        {detectionMetrics.F1Score:P1}");
+            Console.WriteLine(
+                $"False Pos Rate:  {detectionMetrics.FalsePositiveRate:P1}");
+
+
+            // -------------------------------------------------
+            // Detection Threshold Sensitivity Analysis
+            // -------------------------------------------------
+
+            double[] thresholds =
+            {
+                0.30,
+                0.40,
+                0.50,
+                0.60,
+                0.70
+            };
+
+            Console.WriteLine();
+            Console.WriteLine("Detection Threshold Sensitivity");
+            Console.WriteLine("-------------------------------");
+
+            Console.WriteLine(
+                $"{"Threshold",10} " +
+                $"{"TP",5} " +
+                $"{"FP",5} " +
+                $"{"TN",5} " +
+                $"{"FN",5} " +
+                $"{"FPR",8}");
+
+            Console.WriteLine(new string('-', 44));
+
+            foreach (double threshold in thresholds)
+            {
+                DetectionMetrics metrics =
+                    DetectionThresholdAnalysis.Evaluate(
+                        detectionResults,
+                        threshold);
+
+                Console.WriteLine(
+                    $"{threshold,10:F2} " +
+                    $"{metrics.TruePositives,5} " +
+                    $"{metrics.FalsePositives,5} " +
+                    $"{metrics.TrueNegatives,5} " +
+                    $"{metrics.FalseNegatives,5} " +
+                    $"{metrics.FalsePositiveRate,8:P1}");
+            }
+
+
+            // -------------------------------------------------
+            // Multi-Scenario Detection Evaluation
+            // -------------------------------------------------
+
+            const double multiSeedThreshold = 0.40;
+
+            List<DetectionBenchmarkResult> detectionBenchmarkResults =
+                new List<DetectionBenchmarkResult>();
+
+            Console.WriteLine();
+            Console.WriteLine("Multi-Scenario Detection Evaluation");
+            Console.WriteLine("-----------------------------------");
+            Console.WriteLine($"Detection threshold: {multiSeedThreshold:F2}");
+
+            foreach (BenchmarkScenario scenario in benchmarkScenarios)
+            {
+                Console.WriteLine();
+                Console.WriteLine($"Scenario: {scenario.Name}");
+
+                Console.WriteLine(
+                    $"{"Seed",6} " +
+                    $"{"Updates",8} " +
+                    $"{"TP",5} " +
+                    $"{"FP",5} " +
+                    $"{"TN",5} " +
+                    $"{"FN",5} " +
+                    $"{"Recall",9} " +
+                    $"{"FPR",9}");
+
+                Console.WriteLine(new string('-', 65));
+
+                foreach (int seed in randomSeeds)
+                {
+                    IReadOnlyList<DroneDetectionResult> seedResults =
+                        DetectionBenchmarkRunner.Run(
+                            scenario,
+                            detectionThreshold: multiSeedThreshold,
+                            randomSeed: seed);
+
+                    DetectionMetrics metrics =
+                        DetectionMetricsCalculator.Calculate(seedResults);
+
+                    detectionBenchmarkResults.Add(
+                        new DetectionBenchmarkResult(
+                            scenario.Name,
+                            seed,
+                            multiSeedThreshold,
+                            metrics));
+
+                    Console.WriteLine(
+                        $"{seed,6} " +
+                        $"{metrics.TotalEvaluated,8} " +
+                        $"{metrics.TruePositives,5} " +
+                        $"{metrics.FalsePositives,5} " +
+                        $"{metrics.TrueNegatives,5} " +
+                        $"{metrics.FalseNegatives,5} " +
+                        $"{metrics.Recall,9:P1} " +
+                        $"{metrics.FalsePositiveRate,9:P1}");
+                }
+            }
+
+            string detectionCsvPath =
+                Path.Combine("results", "benchmark_detection.csv");
+
+            DetectionBenchmarkCsvExporter.Export(
+                detectionBenchmarkResults,
+                detectionCsvPath);
+
+            Console.WriteLine();
+            Console.WriteLine(
+                $"Detection results exported to: {detectionCsvPath}");
+            Console.WriteLine(
+                $"Total detection benchmark runs: {detectionBenchmarkResults.Count}");
+
+
+
+
+
+
+
+            // _____________________________________________________________
+            // End of temporary diagnostic section
+            // _____________________________________________________________
+
+
         }// end of RunBenchmarkSuite method
 
 
