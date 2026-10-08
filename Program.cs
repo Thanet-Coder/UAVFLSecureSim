@@ -530,87 +530,61 @@ namespace UAVFLSecureSim
                 $"{benchmarkResults.Count} model-quality runs " +
                 $"and {timingResults.Count} timing scenarios.");
 
-            // -------------------------------------------------
-            // temporary diagnostic section
-            // -------------------------------------------------
 
             // -------------------------------------------------
-            // Temporary Detection Diagnostic Test
+            // Detection Threshold Sensitivity Analysis Setup
             // -------------------------------------------------
 
             BenchmarkScenario detectionScenario =
                 benchmarkScenarios[5];
 
-            const double detectionThreshold = 0.50;
+            const double detectionThreshold = 0.40;
 
             IReadOnlyList<DroneDetectionResult> detectionResults =
                 DetectionBenchmarkRunner.Run(
                     detectionScenario,
                     detectionThreshold: detectionThreshold,
                     randomSeed: 42,
-                    showTrustComponents: true);
+                    showTrustComponents: false);
 
             Console.WriteLine();
-            Console.WriteLine("Detection Diagnostic Test");
-            Console.WriteLine("-------------------------");
-            Console.WriteLine(
-                $"Scenario: {detectionScenario.Name}");
-            Console.WriteLine(
-                $"Threshold: {detectionThreshold:F2}");
-            Console.WriteLine();
+            Console.WriteLine("Milestone 10 - Trust Method Comparison");
+            Console.WriteLine("--------------------------------------");
 
-            Console.WriteLine(
-                $"{"UAV",-8} " +
-                $"{"Trust",8} " +
-                $"{"Actual",-15} " +
-                $"{"Prediction",-15}");
+            BenchmarkScenario comparisonScenario =
+                benchmarkScenarios[5]; // Scenario F
 
-            Console.WriteLine(new string('-', 52));
+            const double comparisonThreshold = 0.40;
+            const int comparisonSeed = 42;
 
-            foreach (DroneDetectionResult result in detectionResults)
+            foreach (TrustCombinationMethod method
+                in Enum.GetValues<TrustCombinationMethod>())
             {
-                string actual =
-                    result.IsActuallyCompromised
-                        ? "Compromised"
-                        : "Honest";
+                IReadOnlyList<DroneDetectionResult> results =
+                    DetectionBenchmarkRunner.Run(
+                        comparisonScenario,
+                        detectionThreshold: comparisonThreshold,
+                        randomSeed: comparisonSeed,
+                        trustCombinationMethod: method);
 
-                string prediction =
-                    result.IsPredictedSuspicious
-                        ? "Suspicious"
-                        : "Trusted";
+                DetectionMetrics metrics =
+                    DetectionMetricsCalculator.Calculate(results);
 
-                Console.WriteLine(
-                    $"{"UAV-" + result.DroneId.ToString("00"),-8} " +
-                    $"{result.TrustScore,8:F4} " +
-                    $"{actual,-15} " +
-                    $"{prediction,-15}");
+                Console.WriteLine();
+                Console.WriteLine($"Method: {method}");
+                Console.WriteLine($"Updates evaluated: {metrics.TotalEvaluated}");
+                Console.WriteLine($"True positives:     {metrics.TruePositives}");
+                Console.WriteLine($"False positives:    {metrics.FalsePositives}");
+                Console.WriteLine($"True negatives:     {metrics.TrueNegatives}");
+                Console.WriteLine($"False negatives:    {metrics.FalseNegatives}");
+                Console.WriteLine($"Precision:          {metrics.Precision:P1}");
+                Console.WriteLine($"Recall:             {metrics.Recall:P1}");
+                Console.WriteLine($"F1 score:           {metrics.F1Score:P1}");
+                Console.WriteLine($"False positive rate:{metrics.FalsePositiveRate:P1}");
             }
 
-            DetectionMetrics detectionMetrics =
-                DetectionMetricsCalculator.Calculate(
-                    detectionResults);
 
-            Console.WriteLine();
-            Console.WriteLine("Detection Summary");
-            Console.WriteLine("-----------------");
-            Console.WriteLine(
-                $"True Positives:  {detectionMetrics.TruePositives}");
-            Console.WriteLine(
-                $"False Positives: {detectionMetrics.FalsePositives}");
-            Console.WriteLine(
-                $"True Negatives:  {detectionMetrics.TrueNegatives}");
-            Console.WriteLine(
-                $"False Negatives: {detectionMetrics.FalseNegatives}");
-            Console.WriteLine(
-                $"Total Evaluated: {detectionMetrics.TotalEvaluated}");
-            Console.WriteLine(
-                $"Precision:       {detectionMetrics.Precision:P1}");
-            Console.WriteLine(
-                $"Recall:          {detectionMetrics.Recall:P1}");
-            Console.WriteLine(
-                $"F1 Score:        {detectionMetrics.F1Score:P1}");
-            Console.WriteLine(
-                $"False Pos Rate:  {detectionMetrics.FalsePositiveRate:P1}");
+
 
 
             // -------------------------------------------------

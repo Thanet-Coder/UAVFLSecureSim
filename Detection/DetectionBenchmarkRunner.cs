@@ -16,7 +16,9 @@ namespace UAVFLSecureSim.Detection
             int localEpochs = 100,
             double learningRate = 0.1,
             int randomSeed = 42,
-            bool showTrustComponents = false)
+            bool showTrustComponents = false,
+            TrustCombinationMethod trustCombinationMethod =
+                TrustCombinationMethod.OriginalWeighted)
         {
             // -------------------------------------------------
             // Create Reproducible Simulation
@@ -44,7 +46,8 @@ namespace UAVFLSecureSim.Detection
             FederatedCoordinator coordinator =
                 new FederatedCoordinator(
                     scenario.AggregationMethod,
-                    randomSeed);
+                    randomSeed,
+                    trustCombinationMethod);
 
             List<DroneDetectionResult> detectionResults =
                 new();
@@ -63,10 +66,10 @@ namespace UAVFLSecureSim.Detection
                     learningRate,
                     scenario.AttackStrength);
 
-                if (showTrustComponents && round == 0)
+                if (showTrustComponents && round == 6)
                 {
                     Console.WriteLine();
-                    Console.WriteLine("Round 1 Trust Components");
+                    Console.WriteLine("Round 7 Trust Components");
                     Console.WriteLine("------------------------");
 
                     Console.WriteLine(
@@ -88,6 +91,53 @@ namespace UAVFLSecureSim.Detection
                             $"{trust.CommunicationTrust,8:F4} " +
                             $"{trust.OverallTrust,9:F4}");
                     }
+
+                    Console.WriteLine();
+                    Console.WriteLine("Round 7 Global-Relative Validation");
+                    Console.WriteLine("----------------------------------");
+
+                    Console.WriteLine(
+                        $"{"UAV",-10} {"Global Loss",12} " +
+                        $"{"Submitted Loss",15} {"Difference",12}");
+
+                    foreach (GlobalRelativeValidationResult result in
+                        coordinator.LastGlobalRelativeValidationResults)
+                    {
+                        Console.WriteLine(
+                            $"UAV-{result.DroneId:00}     " +
+                            $"{result.GlobalLogLoss,12:F6} " +
+                            $"{result.SubmittedLogLoss,15:F6} " +
+                            $"{result.LogLossDifference,12:F6}");
+                    }
+
+                    Console.WriteLine();
+                    Console.WriteLine("Experimental Trust Comparison");
+                    Console.WriteLine("-----------------------------");
+
+                    IReadOnlyList<CombinedTrustResult> experimentalResults =
+                        ValidationConditionedTrustEvaluator.Evaluate(
+                            coordinator.LastBehaviourResults,
+                            coordinator.LastValidationResults,
+                            coordinator.LastTemporalResults,
+                            coordinator.LastCommunicationResults);
+
+                    foreach (CombinedTrustResult experimental in experimentalResults)
+                    {
+                        CombinedTrustResult? original =
+                            coordinator.LastCombinedTrustResults.FirstOrDefault(
+                                result => result.DroneId == experimental.DroneId);
+
+                        if (original == null)
+                        {
+                            continue;
+                        }
+
+                        Console.WriteLine(
+                            $"UAV-{experimental.DroneId:00} " +
+                            $"Original: {original.OverallTrust:F4} " +
+                            $"Experimental: {experimental.OverallTrust:F4}");
+                    }
+
                 }
 
 

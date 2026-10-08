@@ -22,6 +22,9 @@ namespace UAVFLSecureSim.Federation
         public AggregationMethod AggregationMethod
         { get; private set; }
 
+        public TrustCombinationMethod TrustCombinationMethod
+        { get; private set; }
+
         public IReadOnlyList<UpdateBehaviourResult>
             LastBehaviourResults
         { get; private set; }
@@ -31,6 +34,11 @@ namespace UAVFLSecureSim.Federation
             LastValidationResults
         { get; private set; }
                 = Array.Empty<ValidationImpactResult>();
+
+        public IReadOnlyList<GlobalRelativeValidationResult>
+            LastGlobalRelativeValidationResults
+        { get; private set; }
+        = Array.Empty<GlobalRelativeValidationResult>();
 
         public IReadOnlyList<TemporalConsistencyResult>
             LastTemporalResults
@@ -50,13 +58,15 @@ namespace UAVFLSecureSim.Federation
         public FederatedCoordinator(
             AggregationMethod aggregationMethod =
                 AggregationMethod.TrustAware,
-            int randomSeed = 42)
+            int randomSeed = 42,
+            TrustCombinationMethod trustCombinationMethod =
+                TrustCombinationMethod.OriginalWeighted)
         {
             GlobalModel = new LogisticModel();
             CurrentRound = 0;
 
             AggregationMethod = aggregationMethod;
-
+            TrustCombinationMethod = trustCombinationMethod;
             random = new Random(randomSeed);
         }
 
@@ -112,6 +122,9 @@ namespace UAVFLSecureSim.Federation
                 LastValidationResults =
                     Array.Empty<ValidationImpactResult>();
 
+                LastGlobalRelativeValidationResults =
+                    Array.Empty<GlobalRelativeValidationResult>();
+
                 LastTemporalResults =
                     Array.Empty<TemporalConsistencyResult>();
 
@@ -148,6 +161,15 @@ namespace UAVFLSecureSim.Federation
                     updates,
                     validationSamples);
 
+            // Experimental diagnostic:
+            // Compare each submitted model against the
+            // current global model before aggregation.
+            LastGlobalRelativeValidationResults =
+                GlobalRelativeValidationEvaluator.Evaluate(
+                    updates,
+                    GlobalModel,
+                    validationSamples);
+
             // Evidence 3:
             // Compare each UAV's current update
             // direction with its previous update.
@@ -164,14 +186,29 @@ namespace UAVFLSecureSim.Federation
                     swarm.Drones,
                     updates);
 
-            // Combine the four independent evidence
-            // scores into one overall trust score.
-            LastCombinedTrustResults =
-                CombinedTrustEvaluator.Evaluate(
-                    LastBehaviourResults,
-                    LastValidationResults,
-                    LastTemporalResults,
-                    LastCommunicationResults);
+            // Select the trust-combination mechanism.
+            // OriginalWeighted preserves the baseline.
+            // ValidationConditionedTemporal is experimental.
+
+            if (TrustCombinationMethod ==
+                TrustCombinationMethod.OriginalWeighted)
+            {
+                LastCombinedTrustResults =
+                    CombinedTrustEvaluator.Evaluate(
+                        LastBehaviourResults,
+                        LastValidationResults,
+                        LastTemporalResults,
+                        LastCommunicationResults);
+            }
+            else
+            {
+                LastCombinedTrustResults =
+                    ValidationConditionedTrustEvaluator.Evaluate(
+                        LastBehaviourResults,
+                        LastValidationResults,
+                        LastTemporalResults,
+                        LastCommunicationResults);
+            }
 
             // Select the aggregation strategy for
             // this federated-learning experiment.
