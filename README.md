@@ -164,4 +164,4 @@ Further details are recorded in `Milestone10_Findings.md`.
 
 Possible extensions include more realistic UAV environments, alternative poisoning strategies, improved validation-based trust mechanisms, larger swarms, diverse data distributions and evaluation under real communication constraints.
 
-The prototype is
+The prototype is intended as an exploratory research platform rather than a production-ready UAV security system.
